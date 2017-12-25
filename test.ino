@@ -6,8 +6,8 @@ byte rawData2 = 0;
 byte rawData3 = 0;
 SoftwareSerial mySerial(A2, A1); // RX, TX
 
-    int SumaCal(byte rawData1, byte rawData2){
-      return ((rawData2 << 8) + rawData1);
+    int SumaCal(byte rawData0, byte rawData1, byte rawData2){
+      return int(SumaCal);
     }
 
 void setup() {

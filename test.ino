@@ -1,12 +1,12 @@
 #include <SoftwareSerial.h>
 
-char rawData0 = 0;
-char rawData1 = 0;
-char rawData2 = 0;
-char rawData3 = 0;
+byte rawData0 = 0;
+byte rawData1 = 0;
+byte rawData2 = 0;
+byte rawData3 = 0;
 SoftwareSerial mySerial(A2, A1); // RX, TX
 
-    int SumaCal(char rawData1, char rawData2){
+    int SumaCal(byte rawData1, byte rawData2){
       return ((rawData2 << 8) + rawData1);
     }
 
@@ -33,7 +33,7 @@ void loop() {
     Serial.print(rawData3, HEX);
     Serial.println("|");
      long one = long(SumaCal);
-     Serial.println(one);
+     Serial.println(one, HEX);
      delay(500);
   }
 }

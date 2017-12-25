@@ -11,7 +11,7 @@ void setup() {
 void loop() {
   String rawData;
   if (mySerial.available()) {
-    rawData = Serial.readStringUntil(0xFF);
+    rawData = mySerial.readStringUntil(0xFF);
   }
   Serial.println(rawData);
   delay(500);

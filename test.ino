@@ -10,9 +10,12 @@ void setup() {
 
 void loop() {
   String rawData;
-  if (mySerial.available()) {
-    rawData = mySerial.readStringUntil(0xFF);
+  if (mySerial.available()> 0) {
+    rawData = mySerial.read();
+    Serial.println(rawData);
   }
-  Serial.println(rawData);
-  delay(500);
+  else {
+    Serial.println("Nie zainicjowalem portu mySerial");
+  }
+    delay(500);
 }

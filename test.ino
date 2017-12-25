@@ -1,10 +1,14 @@
 #include <SoftwareSerial.h>
 
-int rawData0 = 0;
-int rawData1 = 0;
-int rawData2 = 0;
-int rawData3 = 0;
+char rawData0 = 0;
+char rawData1 = 0;
+char rawData2 = 0;
+char rawData3 = 0;
 SoftwareSerial mySerial(A2, A1); // RX, TX
+
+    int SumaCal(char rawData1, char rawData2){
+      return ((rawData2 << 8) + rawData1);
+    }
 
 void setup() {
   Serial.begin (9600);
@@ -16,7 +20,6 @@ void setup() {
 void loop() {
   
   if (mySerial.available()> 0) {
-    Serial.println("mySerial available");
     rawData0 = mySerial.read();
     Serial.print(rawData0, HEX);
     Serial.print("|");
@@ -30,8 +33,8 @@ void loop() {
     Serial.print(rawData3, HEX);
     Serial.println("|");
   }
-  else {
-    Serial.println("Nie zainicjowalem portu mySerial");
-  }
-    delay(500);
+
+   long one = long(SumaCal);
+   Serial.println(one);
+     delay(500);
 }

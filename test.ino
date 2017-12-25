@@ -16,7 +16,7 @@ void loop() {
     Serial.println("mySerial available");
     rawData = mySerial.read();
     Serial.println("SKonczylem odbierac mySerial");
-    Serial.println(rawData);
+    Serial.println(rawData, HEX);
   }
   else {
     Serial.println("Nie zainicjowalem portu mySerial");

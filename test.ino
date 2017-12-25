@@ -32,9 +32,8 @@ void loop() {
     rawData3 = mySerial.read();
     Serial.print(rawData3, HEX);
     Serial.println("|");
-  }
-
-   long one = long(SumaCal);
-   Serial.println(one);
+     long one = long(SumaCal);
+     Serial.println(one);
      delay(500);
+  }
 }

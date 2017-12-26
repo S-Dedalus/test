@@ -1,43 +1,42 @@
-#include <SoftwareSerial.h>
+unsigned long echo = 0;
+int ultraSoundSignal = A1; // Ultrasound signal pin, trigger
+int ultraSoundSignalIN = A2; // Ultrasound signal pin, echo
 
-byte rawData0 = 0;
-byte rawData1 = 0;
-byte rawData2 = 0;
-byte rawData3 = 0;
-int dist = 0;
-SoftwareSerial mySerial(A2, A1); // RX, TX
+unsigned long ultrasoundValue = 0;
 
-    int SumaCal(byte rawData0, byte rawData1, byte rawData2){
-      return long(SumaCal);
-    }
+void setup()
+{
+Serial.begin(9600);
+pinMode(ultraSoundSignal,OUTPUT);
+pinMode(ultraSoundSignalIN,INPUT);
 
-void setup() {
-  Serial.begin (9600);
-  mySerial.begin(9600);
-  
-     Serial.println("Przeszetem setup");
 }
 
-void loop() {
-  
-  if (mySerial.available()> 0) {
-    rawData0 = mySerial.read();
-    Serial.print(rawData0, HEX);
-    Serial.print("|");
-    rawData1 = mySerial.read();
-    Serial.print(rawData1, HEX);
-    Serial.print("|");
-    rawData2 = mySerial.read();
-    Serial.print(rawData2, HEX);
-    Serial.print("|");
-    rawData3 = mySerial.read();
-    Serial.print(rawData3, HEX);
-    Serial.println("|");
-     long one = long(SumaCal);
-     Serial.println(one, HEX);
-     dist = ((rawData1 << 8) + rawData2);
-     Serial.println(dist);
-     
-     delay(500);
-  }
+unsigned long ping(){
+pinMode(ultraSoundSignal, OUTPUT); // Switch signalpin to output
+digitalWrite(ultraSoundSignal, LOW); // Send low pulse
+delayMicroseconds(2); // Wait for 2 microseconds
+digitalWrite(ultraSoundSignal, HIGH); // Send high pulse
+delayMicroseconds(15); // Wait for 15 microseconds
+digitalWrite(ultraSoundSignal, LOW); // Holdoff
+pinMode(ultraSoundSignalIN, INPUT); // Switch signalpin to input
+digitalWrite(ultraSoundSignalIN, HIGH); // Turn on pullup resistor
+// please note that pulseIn has a 1sec timeout, which may
+// not be desirable. Depending on your sensor specs, you
+// can likely bound the time like this — marcmerlin
+// echo = pulseIn(ultraSoundSignal, HIGH, 38000)
+echo = pulseIn(ultraSoundSignalIN, HIGH); //Listen for echo
+Serial.println(echo);
+ultrasoundValue = (echo / 58.138) * .39; //convert to CM then to inches
+return ultrasoundValue;
+
+}
+
+void loop()
+{
+int x = 0;
+x = ping();
+//Serial.println(x);
+delay(250); //delay 1/4 seconds.
+
 }

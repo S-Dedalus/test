@@ -4,7 +4,7 @@ byte rawData0 = 0;
 byte rawData1 = 0;
 byte rawData2 = 0;
 byte rawData3 = 0;
-int dist = 0;
+uint16_t dist = 0;
 SoftwareSerial mySerial(A2, A1); // RX, TX
 
     int SumaCal(byte rawData0, byte rawData1, byte rawData2){
@@ -35,6 +35,7 @@ void loop() {
     Serial.println("|");
      long one = long(SumaCal);
      Serial.println(one, HEX);
+     uint16_t(rawdata1);
      rawData1 = rawData1 << 8;
      dist = (rawData1 & rawData2);
      Serial.print(rawData1, BIN);

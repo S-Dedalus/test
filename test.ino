@@ -35,7 +35,12 @@ void loop() {
     Serial.println("|");
      long one = long(SumaCal);
      Serial.println(one, HEX);
-     dist = ((rawData1 << 8) & rawData2);
+     rawData1 = rawData1 << 8;
+     dist = (rawData1 & rawData2);
+     Serial.print(rawData1, BIN);
+     Serial.print("|");
+     Serial.println(rawData2, BIN);
+     Serial.println(dist, BIN);
      Serial.println(dist);
      
      delay(500);

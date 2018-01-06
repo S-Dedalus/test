@@ -1,25 +1,44 @@
-unsigned long echo = 0;
-int ultraSoundSignal = A1; // Ultrasound signal pin, trigger
-int ultraSoundSignalIN = A2; // Ultrasound signal pin, echo
+#include <SoftwareSerial.h>
 
-unsigned long ultrasoundValue = 0;
+byte rawData0 = 0;
+byte rawData1 = 0;
+byte rawData2 = 0;
+byte rawData3 = 0;
+int dist = 0;
+SoftwareSerial mySerial(A2, A1); // RX, TX
 
-void setup()
-{
-Serial.begin(9600);
-pinMode(ultraSoundSignal,OUTPUT);
-pinMode(ultraSoundSignalIN,INPUT_PULLUP);
+    int SumaCal(byte rawData0, byte rawData1, byte rawData2){
+      return long(SumaCal);
+    }
 
+void setup() {
+  Serial.begin (9600);
+  mySerial.begin(9600);
+  
+     Serial.println("Przeszetem setup");
 }
 
-
-
-
-
-void loop()
-{
-int one;
-one = Serial.read(); 
-Serial.print(one);
-
+void loop() {
+  
+  if (mySerial.available()> 0) {
+    rawData0 = mySerial.read();
+    Serial.print(rawData0, HEX);
+    Serial.print("|");
+    rawData1 = mySerial.read();
+    Serial.print(rawData1, HEX);
+    Serial.print("|");
+    rawData2 = mySerial.read();
+    Serial.print(rawData2, HEX);
+    Serial.print("|");
+    rawData3 = mySerial.read();
+    Serial.print(rawData3, HEX);
+    Serial.println("|");
+     long one = long(SumaCal);
+     Serial.println(one, HEX);
+     dist = ((rawData1 << 8) + rawData2);
+     Serial.println(dist);
+     
+     delay(500);
+  }
 }
+

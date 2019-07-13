@@ -1,107 +1,83 @@
-/**
-*/
+  //check if there are any new clients
+  if (server.hasClient()) {
+    //find free/disconnected spot
+    int i;
+    for (i = 0; i < MAX_SRV_CLIENTS; i++)
+      if (!serverClients[i]) { // equivalent to !serverClients[i].connected()
+        serverClients[i] = server.available();
+        logger->print("New client: index ");
+        logger->print(i);
+        break;
+      }
 
-#include <Arduino.h>
-#include <ESP8266WiFi.h>
-#include <ESP8266WiFiMulti.h>
-#include <ESP8266HTTPClient.h>
-#include <WiFiClient.h>
+    //no free/disconnected spot so reject
+    if (i == MAX_SRV_CLIENTS) {
+      server.available().println("busy");
+      // hints: server.available() is a WiFiClient with short-term scope
+      // when out of scope, a WiFiClient will
+      // - flush() - all data will be sent
+      // - stop() - automatically too
+      logger->printf("server is busy with %d active connections\n", MAX_SRV_CLIENTS);
+    }
+  }
 
-#define GeigerCounter 4             // geiger counter pin
-#define ledPin 2
+  //check TCP clients for data
+#if 1
+  // Incredibly, this code is faster than the bufferred one below - #4620 is needed
+  // loopback/3000000baud average 348KB/s
+  for (int i = 0; i < MAX_SRV_CLIENTS; i++)
+    while (serverClients[i].available() && Serial.availableForWrite() > 0) {
+      // working char by char is not very efficient
+      Serial.write(serverClients[i].read());
+    }
+#else
+  // loopback/3000000baud average: 312KB/s
+  for (int i = 0; i < MAX_SRV_CLIENTS; i++)
+    while (serverClients[i].available() && Serial.availableForWrite() > 0) {
+      size_t maxToSerial = std::min(serverClients[i].available(), Serial.availableForWrite());
+      maxToSerial = std::min(maxToSerial, (size_t)STACK_PROTECTOR);
+      uint8_t buf[maxToSerial];
+      size_t tcp_got = serverClients[i].read(buf, maxToSerial);
+      size_t serial_sent = Serial.write(buf, tcp_got);
+      if (serial_sent != maxToSerial) {
+        logger->printf("len mismatch: available:%zd tcp-read:%zd serial-write:%zd\n", maxToSerial, tcp_got, serial_sent);
+      }
+    }
+#endif
 
-const float factor = 0.006666;      // define constans factor CPM to uS/h
-float uSperH;                           // dose of radiation in uS/h
-int counts = 0; 
-unsigned long perv = 0;
-
-ESP8266WiFiMulti WiFiMulti; 
-
-void zapytanie (float uSperH) {
-    if ((WiFiMulti.run() == WL_CONNECTED)) {
-    WiFiClient client;
-    HTTPClient http;
-    Serial.print("[HTTP] begin...\n");
-    String domoticz = "http://192.168.1.55:8080/json.htm?type=command&param=udevice&idx=37&nvalue=0&svalue=";
-    String quote = (domoticz + String(uSperH));
-    if (http.begin(client, quote)) {  // HTTP
-      Serial.print("[HTTP] GET...\n");
-      // start connection and send HTTP header
-      int httpCode = http.GET();
-      // httpCode will be negative on error
-      if (httpCode > 0) {
-        // HTTP header has been send and Server response header has been handled
-        Serial.printf("[HTTP] GET... code: %d\n", httpCode);
-        // file found at server
-        if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
-          String payload = http.getString();
-          Serial.println(payload);
+  // determine maximum output size "fair TCP use"
+  // client.availableForWrite() returns 0 when !client.connected()
+  size_t maxToTcp = 0;
+  for (int i = 0; i < MAX_SRV_CLIENTS; i++)
+    if (serverClients[i]) {
+      size_t afw = serverClients[i].availableForWrite();
+      if (afw) {
+        if (!maxToTcp) {
+          maxToTcp = afw;
+        } else {
+          maxToTcp = std::min(maxToTcp, afw);
         }
       } else {
-        Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+        // warn but ignore congested clients
+        logger->println("one client is congested");
       }
-      http.end();
-    } else {
-      Serial.printf("[HTTP} Unable to connect\n");
     }
+
+  //check UART for data
+  size_t len = std::min((size_t)Serial.available(), maxToTcp);
+  len = std::min(len, (size_t)STACK_PROTECTOR);
+  if (len) {
+    uint8_t sbuf[len];
+    size_t serial_got = Serial.readBytes(sbuf, len);
+    // push UART data to all connected telnet clients
+    for (int i = 0; i < MAX_SRV_CLIENTS; i++)
+      // if client.availableForWrite() was 0 (congested)
+      // and increased since then,
+      // ensure write space is sufficient:
+      if (serverClients[i].availableForWrite() >= serial_got) {
+        size_t tcp_sent = serverClients[i].write(sbuf, serial_got);
+        if (tcp_sent != len) {
+          logger->printf("len mismatch: available:%zd serial-read:%zd tcp-write:%zd\n", len, serial_got, tcp_sent);
+        }
+      }
   }
-}
-
-
- void licz () {
-  unsigned long now = millis();
-  unsigned long *pervWsk = &perv;
-  int *countsWsk = &counts;
-  if (now - *pervWsk <= 60000UL) {
-    if (digitalRead(GeigerCounter) == LOW){
-      ++*countsWsk;
-      Serial.print("*countsWsk=");
-      Serial.println(*countsWsk);
-      digitalWrite(ledPin, LOW); 
-    }
-    else {
-      digitalWrite(ledPin, HIGH); 
-    }
-  }
-  if (now - *pervWsk > 60000UL) {
-    *pervWsk = now;
-    uSperH = *countsWsk * factor;
-    Serial.print("uS/h");
-    Serial.println(uSperH);
-    zapytanie(uSperH);
-    uSperH = 0;
-    *countsWsk = 0;
-  }
- }
-void setup() {
-
-  Serial.begin(115200);
-  // Serial.setDebugOutput(true);
-  pinMode(GeigerCounter, INPUT_PULLUP);
-  pinMode(ledPin, OUTPUT);
-  digitalWrite(ledPin, HIGH); 
-  Serial.println();
-  Serial.println();
-  Serial.println();
-  for (uint8_t t = 4; t > 0; t--) {
-    Serial.printf("[SETUP] WAIT %d...\n", t);
-    Serial.flush();
-    delay(1000);
-  }
-
-    WiFi.begin("*************", "****************");
-
-    Serial.print("Connecting");
-    while (WiFi.status() != WL_CONNECTED)
-    {
-      delay(500);
-      Serial.print(".");
-    }
-    Serial.println();
-
-    Serial.print("Connected, IP address: ");
-    Serial.println(WiFi.localIP());
-}
-void loop() {
-licz();
- }

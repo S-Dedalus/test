@@ -5,7 +5,7 @@
 #include <WiFiClient.h>
 
 
-#define GCPin 1 //wejscie licznika na pin D1
+#define GCPin 16 //wejscie licznika na pin D1
 
 
 
@@ -13,14 +13,20 @@ int zlicz = 0;
 unsigned long aktualnyCzas = 0;
 unsigned long zapamietanyCzas = 0;
 unsigned long roznicaCzasu = 0;
+unsigned long ledOnTime = 0;
+unsigned long roznicaCzasuLed;
 float dawka = 0;
 const float factor = 0.006666;
+boolean ledState = HIGH;
 
 ESP8266WiFiMulti WiFiMulti;
 
 void setup() {
-  Serial.begin(9600);
-  pinMode(GCPin, INPUT_PULLUP);
+  Serial.begin(115200);
+  pinMode(GCPin, INPUT_PULLDOWN_16);
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, ledState);
+
 
 
   for (uint8_t t = 4; t > 0; t--) {
@@ -30,7 +36,7 @@ void setup() {
   }
 
   WiFi.mode(WIFI_STA);
-  WiFiMulti.addAP("SSID", "PASSWORD");
+  WiFiMulti.addAP("*******", "**********");
 
 }
 
@@ -38,10 +44,24 @@ void loop() {
   if (digitalRead(GCPin)) {
     zlicz ++;
     Serial.println(zlicz);
+    if (ledState == HIGH) {
+      ledState = LOW;
+      ledOnTime = millis();
+    }
+
+
+
+
+
+    /*digitalWrite(LED_BUILTIN, LOW);
+      Serial.println(zlicz);
+      digitalWrite(LED_BUILTIN, HIGH);*/
   }
+
   aktualnyCzas = millis();
   roznicaCzasu = aktualnyCzas - zapamietanyCzas;
-  if (roznicaCzasu >= 60000UL) {
+  roznicaCzasuLed = aktualnyCzas - ledOnTime;
+  if (roznicaCzasu >= 6000UL) {
     zapamietanyCzas = aktualnyCzas;
     Serial.print("trafien: ");
     Serial.print(zlicz);
@@ -55,7 +75,7 @@ void loop() {
     if ((WiFiMulti.run() == WL_CONNECTED)) {
       WiFiClient client;
       HTTPClient http;
-      String domoticzIP = "http://192.168.1.55:8080/json.htm?type=command&param=udevice&idx=IDX&nvalue=0&svalue=";
+      String domoticzIP = "http://192.168.1.55:8080/json.htm?type=command&param=udevice&idx=37&nvalue=0&svalue=";
       Serial.print("[HTTP] begin...\n");
       if (http.begin(client, domoticzIP += dawka)) {
 
@@ -84,4 +104,10 @@ void loop() {
     zlicz = 0;
     dawka = 0;
   }
+  if (roznicaCzasuLed >= 100) {
+    ledState = HIGH;
+    roznicaCzasuLed = 0;
+    ledOnTime = 0;
+  }
+  digitalWrite(LED_BUILTIN, ledState);
 }
